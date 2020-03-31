@@ -37,7 +37,11 @@ class Network:
 
     def getNetwork(self):
         if self.network is None : 
-            self.network = ipaddress.ip_network(self.getIP()+'/'+self.getNetmask(), strict=False)
+            if self.getNetmask() :
+                try :
+                    self.network = ipaddress.ip_network(self.getIP()+'/'+self.getNetmask(), strict=False)
+                except ValueError :
+                    self.network = 'no network'
         return self.network
         
     def getPublicIp(self):
@@ -49,14 +53,21 @@ class Network:
         
     def getIP(self):
         if self.ip is None :
-            ipkey = netifaces.ifaddresses(self.interface)
-            self.ip = (ipkey[netifaces.AF_INET][0]['addr'])
+            try:
+                ipkey = netifaces.ifaddresses(self.interface)
+                self.ip = (ipkey[netifaces.AF_INET][0]['addr'])
+            except KeyError:
+                self.ip ="No IP"
         return self.ip
     
     def getNetmask(self):
         if self.netmask is None:
-            ipkey = netifaces.ifaddresses(self.interface)
-            self.netmask = ipkey[netifaces.AF_INET][0]['netmask']
+            try:
+                ipkey = netifaces.ifaddresses(self.interface)
+                self.netmask = ipkey[netifaces.AF_INET][0]['netmask']
+            except KeyError:
+                self.netmask ="No netmask"
+
         return self.netmask
 
     def getMAC(self):
