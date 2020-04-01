@@ -18,7 +18,7 @@ class Colors:
     bad_colors = ['BLACK', 'WHITE', 'LIGHTBLACK_EX', 'RESET']
 
     def __init__(self):
-        self.format = str(random.choice(self.listColor))
+        self.format = colorama.Fore.GREEN
         
     def defineColor(self,color):
         if isinstance(color,colorama.Fore):

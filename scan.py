@@ -9,6 +9,10 @@ import ipaddress
 from scapy.all import ARP, Ether, srp
 import nmap3
 import stun
+import publicip
+from ip2geotools.databases.noncommercial import DbIpCity
+import  socket
+from Target import Target
 
 
 #colors = list(vars(colorama.Fore).values())
@@ -29,6 +33,18 @@ class Network:
         self.ip = None
         self.mac = None
         self.router = None
+        self.country = None
+        self.city = None
+        self.lat = None
+        self.lng = None
+        self.region = None
+        self.target = None
+        self.ipTarget = None
+        self.countryTarget = None
+        self.cityTarget = None
+        self.regionTarget = None
+        self.latTarget = None
+        self.lngTarget = None
         self.run = True
         self.ips = []
         self.macs = []
@@ -47,6 +63,10 @@ class Network:
     def getPublicIp(self):
         if self.public is None :
             self.public = stun.get_ip_info()[1]
+            if self.public is None :
+                self.public = str(publicip.get())
+                
+        
         return self.public
 
             
@@ -72,9 +92,15 @@ class Network:
 
     def getMAC(self):
         if self.mac is None :
-            ipkey = netifaces.ifaddresses(self.interface)
-            self.mac = (ipkey[netifaces.AF_LINK][0]['addr'])
             
+            ipkey = netifaces.ifaddresses(self.interface)
+            
+            try:
+                self.mac = (ipkey[netifaces.AF_LINK][0]['addr'])
+            except KeyError :
+                self.mac = ipkey[10][0]['addr']
+                
+
         return self.mac
     
     def getInterface(self):
@@ -87,21 +113,38 @@ class Network:
             self.router = (self.routers['default'][netifaces.AF_INET][0])
         return self.router
 
+    def getLocation(self):
+        if self.country is None :
+            location =  DbIpCity.get(self.getPublicIp(), api_key='free')
+            self.country = location.country
+            self.city = location.city
+            self.region = location.region
+            self.lat = location.latitude
+            self.lng = location.longitude
+        return self.country,self.city,self.region,self.lat,self.lng
+
+    
+
     def resetConfig(self):
         self.network = None
         self.public = None 
         self.ip = None
         self.netmask = None
         self.mac = None
+        self.country = None
+        self.city = None
+        self.region = None
+        self.lat = None
+        self.lng = None
             
 
     def showInterface(self):
-        self.colors.print_select_color("[*] Searching...",self.color)
+        print("[*] Searching...")
         print('\r\n')
         cpt = 1
         for interface in self.interfaces :
             text = '['+str(cpt)+'] '+"Detected interface"+str(cpt)+': '+str(interface)
-            self.colors.print_select_color(text,self.color)
+            print(text)
             cpt += 1
         print('\r\n')
         
@@ -109,52 +152,57 @@ class Network:
         if self.interface:
             ipkey = netifaces.ifaddresses(self.interface)
             self.mac = (ipkey[netifaces.AF_LINK][0]['addr'])
-            self.colors.print_select_color('[*] Your MAC address on '+self.interface+' interface is '+self.getMAC())
+            print('[*] Your MAC address on '+self.interface+' interface is '+self.getMAC())
 
     
     def showIPadresse(self):
         if self.interface:
             ipkey = netifaces.ifaddresses(self.interface)
             self.ip = (ipkey[netifaces.AF_INET][0]['addr'])
-            self.colors.print_select_color('[*] Your IP on '+self.interface+' interface is '+self.getIP())
+            print('[*] Your IP on '+self.interface+' interface is '+self.getIP())
 
 
     def showGateway(self):
         if self.routers :
             self.router = (self.routers['default'][netifaces.AF_INET][0])
-            self.colors.print_select_color('[*] Your default gateway is '+self.getGateway()+'.')
+            print('[*] Your default gateway is '+self.getGateway()+'.')
 
     def defineInterface(self):
         self.showInterface()
         self.resetConfig()
-        #self.colors.print_select_color('[*] Choose your interface. (For example type 1 for '+self.interfaces[0]+' interface): ',self.color)
+        #print('[*] Choose your interface. (For example type 1 for '+self.interfaces[0]+' interface): ',self.color)
         choiceInterface = input('[*] Choose your interface. (For example type 1 for '+self.interfaces[0]+' interface): ')
         try:
             choiceInterface = int(choiceInterface) - 1
             interface = self.interfaces[choiceInterface] 
             if interface in self.interfaces and choiceInterface >= 0 :
                 self.interface = interface
-                self.colors.print_select_color(interface+' => ON\r\n',self.color)
+                print(interface+' => ON\r\n')
             else: 
-                self.colors.print_select_color('This interface doesn\'t exist\r\n')
+                print('This interface doesn\'t exist\r\n')
 
         except IndexError:
-            self.colors.print_select_color('This interface doesn\'t exist\r\n',self.color)
+            print('This interface doesn\'t exist\r\n')
         except ValueError:
-            self.colors.print_select_color('Please read before typing..\r\n',self.color)
+            print('Please read before typing..\r\n')
     
     def getResume(self):
         self.colors.print_random_color('[INFO NETWORK INTERFACE]\r\n')
-        self.colors.print_select_color('INTERFACE: '+self.getInterface(),self.color)
-        self.colors.print_select_color('LOCAL IP: '+self.getIP(),self.color)
-        self.colors.print_select_color('MAC: '+self.getMAC(),self.color)
-        self.colors.print_select_color('NETMASK: '+self.getNetmask(),self.color)
-        self.colors.print_select_color('GATEWAY: '+self.getGateway(),self.color)
-        self.colors.print_select_color('NETWORK: '+str(self.getNetwork()),self.color)
-        self.colors.print_select_color('PUBLIC IP: '+self.getPublicIp(),self.color)
+        self.color = None
+        print('INTERFACE: '+self.getInterface())
+        print('LOCAL IP: '+self.getIP())
+        print('MAC: '+self.getMAC())
+        print('NETMASK: '+self.getNetmask())
+        print('GATEWAY: '+self.getGateway())
+        print('NETWORK: '+str(self.getNetwork()))
+        print('PUBLIC IP: '+self.getPublicIp())
+        print('COUNTRY: '+self.getLocation()[0])
+        print('CITY: '+self.getLocation()[1])
+        print('REGION: '+self.getLocation()[2])
+        print('LATITUDE: '+str(self.getLocation()[3]))
+        print('LONGITUDE: '+str(self.getLocation()[4]))
         print('\r\n')
     
-
     def scanNetwork(self):
         self.ips.clear()
         self.macs.clear()
@@ -189,18 +237,19 @@ class Network:
        
 
     def askChoice(self):
-        self.colors.print_random_color('[Network Scanner] : What do you want do ? \r\n')
+        print('[Network Scanner] : What do you want do ? \r\n')
         print('[1]: Get resume of your network')
         print('[2]: Define your interface')
         print('[3]: Scan network')
-        print('[4]: Quit\r\n')
+        print('[4]: Find details target')
+        print('[5]: Quit\r\n')
         answer = input('Your choice: ')
         print('\r\n')
         return answer
 
     
     def assumeChoice(self,choice):
-        listChoice = ['1','2','3','4']
+        listChoice = ['1','2','3','4','5']
         if choice in listChoice :
             if choice == '1':
                 self.getResume()
@@ -209,6 +258,10 @@ class Network:
             if choice == '3':
                 self.scanNetwork()
             if choice == '4':
+                target = Target()
+                target.getResumeTarget()
+
+            if choice == '5':
                 print('[*] Bye...\r\n')
                 self.run = False
                 sys.exit(0)
