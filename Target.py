@@ -41,9 +41,14 @@ class Target:
 
 
     def getDetailsTarget(self):
-        self.hostname = input('[*] Type your target (ip or hostname): ')
+        if self.ip is None :
+            self.hostname = input('[*] Type your target (ip or hostname): ')
+            location =  DbIpCity.get(self.getIPFromHostname(), api_key='free')
+        else :
+            location =  DbIpCity.get(self.ip, api_key='free')
+            
         print('\r\n')
-        location =  DbIpCity.get(self.getIPFromHostname(), api_key='free')
+        
         self.country = location.country
         self.city = location.city
         self.region = location.region
