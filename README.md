@@ -12,6 +12,6 @@
 
 ## Notes
 
-* /!\ Some of tools need to execute as sudo user like scan network. 
+* /!\ Some of tools need to execute as sudo user like scan hosts. 
 
 
