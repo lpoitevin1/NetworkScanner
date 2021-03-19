@@ -1,6 +1,6 @@
 # Network Scanner
 
-* A network scanner build in python3.
+* A network scanner build in python3
 
 ## How to 
 
